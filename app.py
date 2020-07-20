@@ -26,6 +26,9 @@ from os.path import isfile
 from os.path import join	
 import shutil				#For moving files to new file locations
 
+#Utilities
+import random
+
 #CONSTANTS AND SHARED DATA
 #Dictionary of SubReddit pages with likelyhood of selection
 subreddit_dict = {'dankmemes' : 0.35, 'memes' : 0.25, 'comedyheaven' : 0.10, 'comics' : 0.10, 'historymemes' : 0.10, 'deepfriedmemes' : 0.10}
@@ -46,6 +49,7 @@ image_queue_loc = r'.\meme_queue'
 posted_loc = r'.\posted_photos'
 
 #Posting Times (For Threading)
+'''
 posting_times = {0 : [6, 10, 22], 	#Monday
 				 1 : [2, 4, 9], 	#Tuesday
 				 2 : [7, 8, 23], 	#Wednesday
@@ -53,14 +57,26 @@ posting_times = {0 : [6, 10, 22], 	#Monday
 				 4 : [5, 13, 15], 	#Friday
 				 5 : [11, 19, 20], 	#Saturday
 				 6 : [7, 8, 16]} 	#Sunday
+'''
+#Spam posting times
+posting_times = {0 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Monday
+				 1 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Tuesday
+				 2 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Wednesday
+				 3 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Thursday
+				 4 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Friday
+				 5 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Saturday
+				 6 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]} 	#Sunday
 
+
+#Below the caption (Hashtags, whatnot)
+below_caption = "\n.\n.\n.\n Follow @suspectcrab for more!\n#meme #memes #relatable #funny #tiktok #haha #suspectcrab #funnymemes #oof #wholesome #wholesomememe #lol #lmao #humor #dailymemes #memesdaily #cute #funnyvideos"
 #THREADING METHODS
 #====================================================================
 #Creates a post
 def create_post(api_r, api_i, download_count = 30, subreddit = 'memes', timed = False):
 	#Get links to current most popular meme from dankmemes and download to file location
 	memes_links = get_links_and_captions(api_r, subreddit, download_count)
-	image_captions = download_list(memes_links, image_queue_loc)
+	caption_map = download_list(memes_links, image_queue_loc)
 
 	#Watermark each image in the directory
 	dirs = os.listdir(image_queue_loc)
@@ -72,13 +88,15 @@ def create_post(api_r, api_i, download_count = 30, subreddit = 'memes', timed = 
 
 	#Post the first non-duplicate meme in the file directory with appropriate caption
 	dirs = os.listdir(image_queue_loc)
-	post_photo_to_instagram(api_i, image_queue_loc + '\\' + dirs[0], caption_map[dirs[0]] + " - dave")
+	index = random.randint(0, len(dirs) - 1)
 
-	clear_meme_queue(image_queue_loc)
+	#Save a copy of the image
+	post_photo_to_instagram(api_i, image_queue_loc + '\\' + dirs[index], caption_map[dirs[0]] + " - dave" + below_caption)
 
 	#Wait until next time slot, and then post again
 	time = get_time_until_next_post()
 	threading.Timer(time, create_post, [api_r, api_i, download_count, subreddit, True]).start()
+	os.remove(image_queue_loc + '\\' + dirs[0] + ".REMOVE_ME")
 
 #Gets the time until the next post in seconds
 def get_time_until_next_post():
@@ -215,7 +233,7 @@ def get_links_and_captions(api_r, subreddit, count):
 #MEME FILTERING METHODS
 #====================================================================
 #Filters out memes with a certain keyphrase in the image or outside of a specific range of aspect ratios
-def filter_memes_keywords_aspectratio(keyword_list, queue_location, ar_limit = 1.3):
+def filter_memes_keywords_aspectratio(keyword_list, queue_location, ar_limit = 1.2):
 	print("Filtering images for keyphrases and aspect ratios")
 
 	#Get file list from the queue location
@@ -241,7 +259,16 @@ def filter_memes_keywords_aspectratio(keyword_list, queue_location, ar_limit = 1
 			#shutil.move(image_loc, (r'.\eliminated' + r'\\' + image ))
 
 #Filter out memes that are duplicates of already posted photos or duplicates of photos already in the meme queue
-def filter_memes_duplicates(queue_location):
+def filter_memes_duplicates(image_queue_loc, posted_loc):
+	queue_directory = os.listdir(image_queue_loc)
+	posted_directory = os.listdir(image_queue_loc)
+
+	for file in queue_directory:
+		f = Image.open(image_queue_loc + '\\' + file)
+		for posted_file in posted_directory:
+			c = Image.open(posted_loc + '\\' + posted_file)
+			if f == c:
+				os.remove(image_queue_loc + '\\' + file)
 	return 0
 	#>>>>>>>>>>>>>>>>>>>>TODO<<<<<<<<<<<<<<<<<<<<<<<<<
 #====================================================================
@@ -265,7 +292,8 @@ def download_list(meme_list, folder_loc):
 		urllib.request.urlretrieve(meme, title)
 
 		#Save the caption
-		caption_map[title] = meme_list[meme]
+		image = str(i) + ".jpg"
+		caption_map[image] = meme_list[meme]
 
 	print("Downloaded images successfully.")
 	return caption_map
@@ -305,7 +333,6 @@ def watermark_image(file, account_name):
 
 	image.paste(c_text, pos, c_text)
 	image.save(file)
-
 	return 0
 #====================================================================
 
