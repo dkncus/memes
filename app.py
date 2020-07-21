@@ -18,6 +18,7 @@ import urllib.request 		#For downloading images from image list
 import time					#Timing Library
 from datetime import datetime, timedelta #For timing next meme post
 import threading 			#Threading for timing until next post
+from threading import Timer
 
 #File management dependencies
 import os					#Basic file management system
@@ -25,16 +26,17 @@ from os import listdir
 from os.path import isfile	
 from os.path import join	
 import shutil				#For moving files to new file locations
+import sys
 
 #Utilities
 import random
 
 #CONSTANTS AND SHARED DATA
 #Dictionary of SubReddit pages with likelyhood of selection
-subreddit_dict = {'dankmemes' : 0.35, 'memes' : 0.25, 'comedyheaven' : 0.10, 'comics' : 0.10, 'historymemes' : 0.10, 'deepfriedmemes' : 0.10}
+subreddit_dict = {'dankmemes' : 0.20, 'memes' : 0.60, 'comedyheaven' : 0.10, 'comics' : 0.10}
 
 #Key phrases and words to avoid when harvesting memes
-keyphrases = [	'reddit', 'mods', 'mod', 
+keyphrases = [	'reddit', 'mods', 'mod', 'gay' 
 				'u/', 'u\\', 'r/', 'r\\', 
 				'instagram', 'normie', 'insta', 
 				'awards', 'award', 'karma', 
@@ -45,20 +47,21 @@ keyphrases = [	'reddit', 'mods', 'mod',
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract' #Setup for Pytesseract program files
 
 #Location where meme images and already posted images are stored
-image_queue_loc = r'.\meme_queue'
-posted_loc = r'.\posted_photos'
+image_queue_loc = r'.\meme_queue\\'
+posted_loc = r'.\posted_photos\\'
 
-#Posting Times (For Threading)
-'''
-posting_times = {0 : [6, 10, 22], 	#Monday
-				 1 : [2, 4, 9], 	#Tuesday
-				 2 : [7, 8, 23], 	#Wednesday
-				 3 : [9, 12, 19], 	#Thursday
-				 4 : [5, 13, 15], 	#Friday
-				 5 : [11, 19, 20], 	#Saturday
-				 6 : [7, 8, 16]} 	#Sunday
-'''
+#Posting Times (For Threading) DAY : [[H, M, S], [H, M, S], [H, M, S]]
+
+posting_times = {0 : [[6, 0, 0],  [10, 0, 0], [22, 0, 0]], 	#Monday
+				 1 : [[2, 0, 0],  [4, 0, 0],  [9, 0, 0]], 	#Tuesday
+				 2 : [[7, 0, 0],  [8, 0, 0],  [23, 0, 0]], 	#Wednesday
+				 3 : [[9, 0, 0],  [12, 0, 0], [19, 0, 0]], 	#Thursday
+				 4 : [[5, 0, 0],  [13, 0, 0], [15, 0, 0]], 	#Friday
+				 5 : [[11, 0, 0], [19, 0, 0], [20, 0, 0]], 	#Saturday
+				 6 : [[7, 0, 0],  [8, 0, 0],  [16, 0, 0]]} 	#Sunday
+
 #Spam posting times
+'''
 posting_times = {0 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Monday
 				 1 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Tuesday
 				 2 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Wednesday
@@ -66,284 +69,372 @@ posting_times = {0 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
 				 4 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Friday
 				 5 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Saturday
 				 6 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]} 	#Sunday
-
+'''
 
 #Below the caption (Hashtags, whatnot)
 below_caption = "\n.\n.\n.\n Follow @suspectcrab for more!\n#meme #memes #relatable #funny #tiktok #haha #suspectcrab #funnymemes #oof #wholesome #wholesomememe #lol #lmao #humor #dailymemes #memesdaily #cute #funnyvideos"
-#THREADING METHODS
-#====================================================================
-#Creates a post
-def create_post(api_r, api_i, download_count = 30, subreddit = 'memes', timed = False):
-	#Get links to current most popular meme from dankmemes and download to file location
-	memes_links = get_links_and_captions(api_r, subreddit, download_count)
-	caption_map = download_list(memes_links, image_queue_loc)
 
-	#Watermark each image in the directory
-	dirs = os.listdir(image_queue_loc)
-	for img in dirs:
-		watermark_image(image_queue_loc + '\\' + img, login_i[0])
+access_keys_i_loc = r'.\access_keys\passwords_i.txt'
+access_keys_r_loc = r'.\access_keys\keys_r.txt'
 
-	#Filter memes for keyword phrases and duplicated
-	filter_memes_keywords_aspectratio(keyphrases, image_queue_loc)
+class Poster:
+	#LOGIN/SETUP METHODS
+	#====================================================================
+	#Initialization method
+	def __init__(	self, subreddit_dict, keyphrases, posting_times, below_caption,	#Required Positional Arguments
+					auth = True, 													#Whether Reddit authorization is required
+					access_keys_i_loc = r'.\access_keys\passwords_i.txt', 			#Location of Instagram username and password
+					access_keys_r_loc = r'.\access_keys\keys_r.txt',				#Location of Reddit username and password
+					image_queue_loc = r'.\meme_queue\\', 							#Location of Meme Queue (Image Folder for Queueing)
+					posted_loc = r'.\posted_photos\\', 								#Photos that have previously been posted on the account
+					download_count = 50, 											#Number of Reddit posts to download per cycle into Meme Queue
+					subreddit = 'memes', 											#Subreddit to harvest from
+					ar_limit = 1.3):												#Acceptable Aspect Ratio limit
 
-	#Post the first non-duplicate meme in the file directory with appropriate caption
-	dirs = os.listdir(image_queue_loc)
-	index = random.randint(0, len(dirs) - 1)
-
-	#Save a copy of the image
-	post_photo_to_instagram(api_i, image_queue_loc + '\\' + dirs[index], caption_map[dirs[0]] + " - dave" + below_caption)
-
-	#Wait until next time slot, and then post again
-	time = get_time_until_next_post()
-	threading.Timer(time, create_post, [api_r, api_i, download_count, subreddit, True]).start()
-	os.remove(image_queue_loc + '\\' + dirs[0] + ".REMOVE_ME")
-
-#Gets the time until the next post in seconds
-def get_time_until_next_post():
-	#Get the current time and day, and create a tomorrow object
-	today = datetime.today() #YYYY-MM-DD HH:MM:SS.UUUUUU
-	weekday = today.weekday()
-	tomorrow = today + timedelta(days = 1)
-	w_tomorrow = tomorrow.weekday()
-
-	#Get posting times for today's day of the week
-	timeset = posting_times[weekday]
-
-	#Convert all posting times into a datetime object, incl. the first posting time of the next morning
-	possible_future_times = []
-	for hour in timeset:
-		update = datetime(today.year, today.month, today.day, hour, 0, 0)
-		possible_future_times.append(update)
-	#	incl. the first posting time of the next morning
-	hour = posting_times[w_tomorrow][0]
-	tomorrow_first = datetime(tomorrow.year, tomorrow.month, tomorrow.day, hour, 0, 0)
-	possible_future_times.append(tomorrow_first)
-
-	#find closest time to current time for next post
-	today = datetime.today()
-	timeslot = -1
-	for i, time in enumerate(possible_future_times):
-		if time > today:
-			print("Next post in", time - today)
-			timeslot = i
-			break
-
-	#Time until the next future timeslot
-	time_until_next = possible_future_times[timeslot] - datetime.now()
-	print("Time until next timeslot -", time_until_next)
-	return time_until_next.seconds
-#====================================================================
-
-#LOGIN/SETUP METHODS
-#====================================================================
-#Log in and authenticate to Instagram, returns API object
-def login_instagram():
-	#Try logging in, if there is a problem, try again.
-	try:
-		#Instagram Username and Password, insta_keys[0] : Username, insta_keys[1] : Password
-		insta_keys = ['username', 'password']
-		fp = open(r'.\access_keys\passwords_i.txt', 'r')
-		insta_keys[0] = fp.readline().rstrip('\n')
-		insta_keys[1] = fp.readline().rstrip('\n')
-		print("-Using Login Credentials-\n\tUsername :", insta_keys[0], "\n\tPassword :", insta_keys[1])
-		fp.close()
-
-		#Create an bot object and authenticate it to the Instagram platform
-		print("Starting Instagram login...")
-		instagram_credential = instabot.Bot()
-		instagram_credential.login(username = insta_keys[0], password = insta_keys[1])
-		print("Instagram login successful.")
-		return insta_keys, instagram_credential
-	except:
-		print("ERROR :::> Instagram Login Failed. Retrying in 10 seconds...")
-		time.sleep(10)
-		return login_instagram()
-
-#Log in and authenticate to Reddit, returns API object
-def login_reddit(authorized = False):
-	#Try logging in, if there is a problem, try again.
-	try:
-		#Load in authentication information
-		reddit_keys = ['public', 'secret']
-		reddit_login = ['username', 'password']
-		#Load Reddit authentication keys
-		fp = open(r'.\access_keys\keys_r.txt', 'r')
-		reddit_keys[0] = fp.readline().rstrip('\n')
-		reddit_keys[1] = fp.readline().rstrip('\n')
-		#Load Reddit login information
-		fp = open(r'.\access_keys\passwords_r.txt', 'r')
-		reddit_login[0] = fp.readline().rstrip('\n')
-		reddit_login[1] = fp.readline().rstrip('\n')
-		fp.close()
-
-		#Will be filled with Reddit object
-		api_r = None
-
-		#Create an API object to authenticate to Reddit
-		print("Creating Reddit API object...")
-		if authorized == True: #Create an Authorized (READ-ONLY) instance of the API object
-			api_r = praw.Reddit(client_id = reddit_keys[0], 
-								client_secret = reddit_keys[1], 
-								user_agent = "ChangeMeClient/0.1 by " + reddit_login[0],
-								username = reddit_login[0],
-								password = reddit_login[1])
-		else:
-			api_r = praw.Reddit(client_id = reddit_keys[0], 
-								client_secret = reddit_keys[1], 
-								user_agent = "ChangeMeClient/0.1 by " + reddit_login[0])
-
-		print("API Object successfully created.")
-
-		#Return necessary information
-		return reddit_login, api_r, reddit_keys
-	except:
-		print("ERROR :::> Reddit Login Failed. Retrying in 10 seconds...")
-		time.sleep(10)
-		return login_reddit()
-#====================================================================
-
-#INSTAGRAM/REDDIT INTERACTION METHODS
-#====================================================================
-#Posts a given photo to instagram with a specified caption
-def post_photo_to_instagram(api_i, photo_path, caption_text):
-	#Using instagram API,  
-	api_i.upload_photo(photo_path, caption = caption_text)
-	return 0
-
-#Get the top hot image links from a given subreddit
-def get_links_and_captions(api_r, subreddit, count):
-	print("Downloading images from Reddit...")
-	#Specify given subreddit
-	sub = api_r.subreddit(subreddit)
-
-	#Filled with URL's to meme and their respective top comment
-	memes = {}
-
-	#Find all memes within a given criteria on the subreddit's current hot page
-	for meme in sub.hot(limit = count):
-		img = meme.url
-		#Check if the image is a .png or .jpg image and whether it is NSFW marked
-		if (".jpg" in img) and not (meme.over_18) and meme.num_comments > 0:
-			#Pair meme and top comment together in dict object
-			memes[img] = meme.comments[0].body
-
-	return memes
-#====================================================================
-
-#MEME FILTERING METHODS
-#====================================================================
-#Filters out memes with a certain keyphrase in the image or outside of a specific range of aspect ratios
-def filter_memes_keywords_aspectratio(keyword_list, queue_location, ar_limit = 1.2):
-	print("Filtering images for keyphrases and aspect ratios")
-
-	#Get file list from the queue location
-	dirs = os.listdir(queue_location)
-
-	#For each image listed in the directory
-	for image in dirs:
-		image_loc = queue_location + '\\'+ image
-		#Get the body text of the meme
-		body_text = read_meme(image_loc).lower()
-		#Fetch the aspect ratio of the image
-		aspect_ratio = get_aspect_ratio(image_loc)
+		self.subreddit_dict = subreddit_dict
+		self.keyphrases = keyphrases
+		self.image_queue_loc = image_queue_loc
+		self.posted_loc = posted_loc
+		self.posting_times = posting_times
+		self.below_caption = below_caption
+		self.access_keys_i_loc = access_keys_i_loc
+		self.access_keys_r_loc = access_keys_r_loc
+		self.subreddit = subreddit
+		self.download_count = download_count
+		self.ar_limit = ar_limit
+		self.login_i, self.api_i = self.login_instagram()
+		self.account_name = self.login_i[0]
+		self.account_pass = self.login_i[1]
+		self.login_r, self.api_r, self.keys_r = self.login_reddit(authorized = False)
 		
-		if aspect_ratio <= ar_limit:
-			for keyword in keyword_list:
-				#Check if any keyword appears in that body text, if so, remove it
-				if keyword in body_text:
-					os.remove(image_loc)
-					#shutil.move(image_loc, (r'.\eliminated' + r'\\' + image )) #For checking which images were eliminated
-					break
-		else:
-			os.remove(image_loc)
-			#shutil.move(image_loc, (r'.\eliminated' + r'\\' + image ))
-
-#Filter out memes that are duplicates of already posted photos or duplicates of photos already in the meme queue
-def filter_memes_duplicates(image_queue_loc, posted_loc):
-	queue_directory = os.listdir(image_queue_loc)
-	posted_directory = os.listdir(image_queue_loc)
-
-	for file in queue_directory:
-		f = Image.open(image_queue_loc + '\\' + file)
-		for posted_file in posted_directory:
-			c = Image.open(posted_loc + '\\' + posted_file)
-			if f == c:
-				os.remove(image_queue_loc + '\\' + file)
-	return 0
-	#>>>>>>>>>>>>>>>>>>>>TODO<<<<<<<<<<<<<<<<<<<<<<<<<
-#====================================================================
-
-#UTILITIES
-#====================================================================
-#Fetches the text from a meme
-def read_meme(photo_path):
-	#Return pytesseract read text from meme
-	return pytesseract.image_to_string(Image.open(photo_path), lang = 'eng')
+		print("Clearing Image Queue and Downloading Base Set...")
+		self.clear_image_queue() #Cleans out the current image queue
+		self.caption_map = self.download_and_augment() #Relevant captions to each image in the file directory
 	
-#Download a given list of memes
-def download_list(meme_list, folder_loc):
-	caption_map = {}
-	#For each meme in the list
-	for i, meme in enumerate(meme_list):
-		#Create unique title for each meme
-		title = folder_loc + "\\" + str(i) + ".jpg"
+	#Log in and authenticate to Instagram, returns API object
+	def login_instagram(self):
+		#Try logging in, if there is a problem, try again.
+		try:
+			#Instagram Username and Password, insta_keys[0] : Username, insta_keys[1] : Password
+			insta_keys = ['username', 'password']
+			fp = open(self.access_keys_i_loc, 'r')
+			insta_keys[0] = fp.readline().rstrip('\n')
+			insta_keys[1] = fp.readline().rstrip('\n')
+			print("-Using Login Credentials-\n\tUsername :", insta_keys[0], "\n\tPassword :", insta_keys[1])
+			fp.close()
 
-		#Download the meme into the meme queue folder
-		urllib.request.urlretrieve(meme, title)
+			#Create an bot object and authenticate it to the Instagram platform
+			print("Starting Instagram login...")
+			instagram_credential = instabot.Bot()
+			instagram_credential.login(username = insta_keys[0], password = insta_keys[1])
+			print("Instagram login successful.")
+			return insta_keys, instagram_credential
+		except:
+			print("ERROR :::> Instagram Login Failed. Retrying in 10 seconds...")
+			time.sleep(10)
+			return self.login_instagram()
 
-		#Save the caption
-		image = str(i) + ".jpg"
-		caption_map[image] = meme_list[meme]
+	#Log in and authenticate to Reddit, returns API object
+	def login_reddit(self, authorized):
+		#Try logging in, if there is a problem, try again.
+		try:
+			#Load in authentication information
+			reddit_keys = ['public', 'secret']
+			reddit_login = ['username', 'password']
+			#Load Reddit authentication keys
+			fp = open(access_keys_r_loc, 'r')
+			reddit_keys[0] = fp.readline().rstrip('\n')
+			reddit_keys[1] = fp.readline().rstrip('\n')
+			#Load Reddit login information
+			fp = open(self.access_keys_r_loc, 'r')
+			reddit_login[0] = fp.readline().rstrip('\n')
+			reddit_login[1] = fp.readline().rstrip('\n')
+			fp.close()
 
-	print("Downloaded images successfully.")
-	return caption_map
+			#Will be filled with Reddit object
+			api_r = None
 
-#Return the aspect ratio of a given image file
-def get_aspect_ratio(file):
-	image = Image.open(file)
-	width, height = image.size
+			#Create an API object to authenticate to Reddit
+			print("Creating Reddit API object...")
+			if authorized == True: #Create an Authorized (READ-ONLY) instance of the API object
+				api_r = praw.Reddit(client_id = reddit_keys[0], 
+									client_secret = reddit_keys[1], 
+									user_agent = "ChangeMeClient/0.1 by " + reddit_login[0],
+									username = reddit_login[0],
+									password = reddit_login[1])
+			else:
+				api_r = praw.Reddit(client_id = reddit_keys[0], 
+									client_secret = reddit_keys[1], 
+									user_agent = "ChangeMeClient/0.1 by " + reddit_login[0])
 
-	aspect_ratio = width / height
+			print("API Object successfully created.")
 
-	if aspect_ratio < 1:
-		aspect_ratio = height / width
+			#Return necessary information
+			return reddit_login, api_r, reddit_keys
+		except:
+			print("ERROR :::> Reddit Login Failed. Retrying in 10 seconds...")
+			time.sleep(10)
+			return login_reddit()
 
-	return aspect_ratio
+	#Start base thread - Master Method
+	def start(self):
+		#Get time until the next post is scheduled
+		time = self.get_time_until_next_post()
+		#Start thread to countdown until next scheduled post, then post
+		thread = Timer(time, self.create_post)
+		thread.start()
+		self.countdown(time, message = "Time before next post : ")
+	#====================================================================
 
-#Watermark a given image - base code from https://medium.com/better-programming/add-copyright-or-watermark-to-photos-using-python-a3773c71d431
-def watermark_image(file, account_name):
-	image = Image.open(file)
-	width, height = image.size
-	
-	drawing = ImageDraw.Draw(image)
+	#THREADING METHODS
+	#====================================================================
+	#Creates a post
+	def create_post(self):
+		print("\n", datetime.now(), ": STARTING NEW POST")
 
-	font_size = width // 30
+		#Post the photo
+		print("Posting Photo...")
+		#post_photo_to_instagram(api_i,  )
+		dirs = os.listdir(image_queue_loc) 
+		index = random.randint(0, len(dirs) - 1) 	#Select a random index from the directory
+		caption_text = self.caption_map[dirs[index]] + " - dave" + self.below_caption #Generate Relevant Caption
+		
+		try:
+			os.rename(self.image_queue_loc + dirs[index] + ".REMOVE_ME", self.posted_loc + dirs[index])  #FOR DEBUGGING PURPOSES::::::::::::::::::::::::::FIX THIS LATER
+		except FileExistsError:
+			os.remove(self.posted_loc + dirs[index])
+			os.rename(self.image_queue_loc + dirs[index], self.posted_loc + dirs[index])
 
-	font = ImageFont.truetype("cmunss.ttf", font_size)
+		print("Photo posted.\n")
 
-	text = "@" + account_name
-	text_w, text_h = drawing.textsize(text, font)
-	pos = width - text_w - 20, (height - text_h) - 20
+		#Select a subreddit to draw content from
+		self.subreddit = self.choose_subreddit()
 
-	c_text = Image.new('RGB', (text_w, text_h))
-	drawing = ImageDraw.Draw(c_text)
+		#Queue a new set of memes from Reddit
+		print("Downloading new set of memes...")
+		self.clear_image_queue()	#Clear the image queue (Delete all memes in queue)
+		self.caption_map = self.download_and_augment() #Download, Watermark, and Filter memes in Image Queue folder
+		print("New meme set downloaded.")
 
-	drawing.text((0,0), text, fill="#ffffff", font=font)
-	c_text.putalpha(100)
+		#Wait until next time slot, and then post again
+		time = get_time_until_next_post()
+		next_thread = Timer(time, self.create_post)
+		next_thread.start()
+		self.countdown(time, message = "Time before next post : ")
 
-	image.paste(c_text, pos, c_text)
-	image.save(file)
-	return 0
-#====================================================================
+		return 0
+
+	#Download, Watermark, and Filter memes. Return corresponding captions.
+	def download_and_augment(self):
+		print("\tFetching links to download from...")
+		memes_links = self.get_links_and_captions()
+		print("\tDownloading images from links...")
+		caption_map = self.download_list(memes_links, self.image_queue_loc)
+
+		#Watermark each image in the directory
+		self.watermark_images()
+
+		#Filter memes for keyword phrases and duplicated
+		self.filter_memes_keywords_aspectratio()
+
+		return caption_map
+	#====================================================================
+
+	#INSTAGRAM/REDDIT INTERACTION METHODS
+	#====================================================================
+	#Get the top hot image links from a given subreddit, reddit API, and count
+	def get_links_and_captions(self):
+		#Filled with URL's to meme and their respective top comment
+		memes = {}
+
+		#Find all memes within a given criteria on the subreddit's current hot page
+		for meme in self.api_r.subreddit(self.subreddit).hot(limit = self.download_count):
+			img = meme.url
+			#Check if the image is a .png or .jpg image and whether it is NSFW marked
+			if (".jpg" in img) and not (meme.over_18) and meme.num_comments > 0:
+				#Pair meme and top comment together in dict object
+				memes[img] = meme.comments[0].body
+
+		return memes
+	#====================================================================
+
+	#MEME FILTERING METHODS
+	#====================================================================
+	#Filters out memes with a certain keyphrase in the image or outside of a specific range of aspect ratios
+	def filter_memes_keywords_aspectratio(self):
+		print("\tFiltering images for keyphrases and aspect ratios")
+		queue_location = self.image_queue_loc
+
+		#Get file list from the queue location
+		dirs = os.listdir(queue_location)
+
+		#For each image listed in the directory
+		for image in dirs:
+			image_loc = queue_location + image
+			#Get the body text of the meme
+			body_text = self.read_meme(image_loc).lower()
+			#Fetch the aspect ratio of the image
+			aspect_ratio = self.get_aspect_ratio(image_loc)
+			
+			if aspect_ratio <= self.ar_limit:
+				for keyword in self.keyphrases:
+					#Check if any keyword appears in that body text, if so, remove it
+					if keyword in body_text:
+						print("\t\tRemoved Image ", image_loc, " - Body text contains keyphrase '", keyword, "'", sep ='')
+						os.remove(image_loc)
+						#shutil.move(image_loc, (r'.\eliminated\\' + image )) #For Debugging
+						break
+			else:
+				print("\t\tRemoved Image", image_loc, "- Out of Aspect Ratio")
+				os.remove(image_loc)
+				#shutil.move(image_loc, (r'.\eliminated\\' + image )) #For Debugging
+
+	#Filter out memes that are duplicates of already posted photos or duplicates of photos already in the meme queue
+	def filter_memes_duplicates(self):
+		queue_directory = os.listdir(self.image_queue_loc)
+		posted_directory = os.listdir(self.posted_loc)
+
+		for file in queue_directory:
+			f = Image.open(self.image_queue_loc + file)
+			for posted_file in posted_directory:
+				c = Image.open(self.posted_loc + posted_file)
+				if f == c:
+					os.remove(self.image_queue_loc + file)
+		return 0
+	#====================================================================
+
+	#UTILITIES
+	#====================================================================
+	#Fetches the text from a meme
+	def read_meme(self, photo_path):
+		#Return pytesseract read text from meme
+		return pytesseract.image_to_string(Image.open(photo_path), lang = 'eng')
+		
+	#Download a given list of memes
+	def download_list(self, meme_list, folder_loc):
+		caption_map = {}
+		#For each meme in the list
+		for i, meme in enumerate(meme_list):
+			#Create unique title for each meme
+			image = str(i) + ".jpg"
+			title = folder_loc + "\\" + image
+			try:
+				#Download the meme into the meme queue folder
+				urllib.request.urlretrieve(meme, title)
+
+				#Save the caption and meme
+				print("\t\tImage", meme, "saved as", image)
+				caption_map[image] = meme_list[meme]
+			except:
+				print("Failed to download image.")
+
+		print("\tDownloaded images successfully.")
+		return caption_map
+
+	#Return the aspect ratio of a given image file
+	def get_aspect_ratio(self, file):
+		image = Image.open(file)
+		width, height = image.size
+
+		aspect_ratio = width / height
+
+		if aspect_ratio < 1:
+			aspect_ratio = height / width
+
+		return aspect_ratio
+
+	#Watermark all images in a given folder
+	# - base code from https://bit.ly/3hjMh36
+	def watermark_images(self):
+		dirs = os.listdir(self.image_queue_loc)
+		for img in dirs:
+			file = self.image_queue_loc + img
+			image = Image.open(file)
+			width, height = image.size
+			
+			drawing = ImageDraw.Draw(image)
+
+			font_size = width // 30
+
+			font = ImageFont.truetype("cmunss.ttf", font_size)
+
+			text = "@" + self.account_name
+			text_w, text_h = drawing.textsize(text, font)
+			pos = width - text_w - 20, (height - text_h) - 20
+
+			c_text = Image.new('RGB', (text_w, text_h))
+			drawing = ImageDraw.Draw(c_text)
+
+			drawing.text((0,0), text, fill="#ffffff", font=font)
+			c_text.putalpha(100)
+			image.paste(c_text, pos, c_text)
+			image.save(file)
+		return 0
+
+	#Gets the time until the next post in seconds
+	def get_time_until_next_post(self):
+		#Get the current time and day, and create a tomorrow object
+		today = datetime.today() #YYYY-MM-DD HH:MM:SS.UUUUUU
+		weekday = today.weekday()
+		tomorrow = today + timedelta(days = 1)
+		w_tomorrow = tomorrow.weekday()
+
+		#Get posting times for today's day of the week
+		timeset = self.posting_times[weekday]
+
+		#Convert all posting times into a datetime object, incl. the first posting time of the next morning
+		possible_future_times = []
+		for time in timeset:
+			update = datetime(today.year, today.month, today.day, time[0], time[1], time[2])
+			possible_future_times.append(update)
+		#	incl. the first posting time of the next morning
+		tomorrow_time = posting_times[w_tomorrow][0]
+		tomorrow_first = datetime(tomorrow.year, tomorrow.month, tomorrow.day, tomorrow_time[0], tomorrow_time[1], tomorrow_time[2])
+		possible_future_times.append(tomorrow_first)
+
+		#find closest time to current time for next post
+		today = datetime.today()
+		timeslot = -1
+		for i, time in enumerate(possible_future_times):
+			if time > today:
+				timeslot = i
+				break
+
+		#Time until the next future timeslot
+		time_until_next = possible_future_times[timeslot] - datetime.now()
+		return time_until_next.seconds
+
+	#Clears all images in the image queue
+	def clear_image_queue(self):
+		files = [f for f in os.listdir(self.image_queue_loc)]
+		for f in files:
+			os.remove(os.path.join(self.image_queue_loc, f))
+		return 0
+
+	#Pick a random subreddit from weighted list of subreddit_dict
+	def choose_subreddit(self):
+		subs = []
+		weights = []
+
+		for subreddit in self.subreddit_dict:
+			subs.append(subreddit)
+			weights.append(subreddit_dict[subreddit])
+
+		weighted_choice = random.choices(subs, weights, k = 1)
+		print("Content From r/", weighted_choice[0], sep = '')
+		return weighted_choice[0]
+
+	#Print a dynamic countdown onto the console
+	def countdown(self, seconds, message = ''):
+		print()
+		for i in range(seconds):
+			m = message + str(timedelta(seconds=seconds))
+			print(f'{m}\r', end = "")
+			sys.stdout.flush()
+			time.sleep(1)
+			seconds -= 1
+	#====================================================================
 
 if __name__ == '__main__':
-	#STARTUP/INITIALIZATION PHASE
-	#----------------------------------------------------------------
-	#Authenticate to Instagram and Reddit, create/connect API objects
-	login_i, api_i = login_instagram()
-	login_r, api_r, keys_r = login_reddit(authorized = True)
-	#----------------------------------------------------------------
-
-	#RUN PHASE
-	#----------------------------------------------------------------
-	create_post(api_r, api_i, download_count = 50)
+	p = Poster(subreddit_dict, keyphrases, posting_times, below_caption)
+	p.start()
