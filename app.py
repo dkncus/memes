@@ -30,10 +30,11 @@ import sys
 
 #Utilities
 import random
+import re
 
 #CONSTANTS AND SHARED DATA
 #Dictionary of SubReddit pages with likelyhood of selection
-subreddit_dict = {'dankmemes' : 0.20, 'memes' : 0.60, 'comedyheaven' : 0.10, 'comics' : 0.10}
+subreddit_dict = {'dankmemes' : 0.20, 'memes' : 0.70, 'comedyheaven' : 0.10}
 
 #Key phrases and words to avoid when harvesting memes
 keyphrases = [	'reddit', 'mods', 'mod', 'gay' 
@@ -192,25 +193,33 @@ class Poster:
 	#THREADING METHODS
 	#====================================================================
 	#Creates a post
-	def create_post(self, num_posts = 1):
+	def create_post(self, num_posts = 1, start_next = True):
 		print("\n", datetime.now(), ": STARTING NEW POST")
 
 		#Post the photo
 		print("Posting Photo(s)...")
 
-		#Bundle Posts
+		#Create and post num_posts posts
 		for i in range(num_posts):
 			dirs = os.listdir(image_queue_loc) #List all files in the directory
 
 			#Get the closest to the top hottest non-eliminated post in the directory
 			f = ''
-			for i in range(len(dirs)):
-				filename = str(i) + ".jpg"
-				if filename in dirs:
-					print("Using", filename)
-					f = filename
-					break
-
+			if self.fetch_random:
+				for i in range(self.download_count):
+					string_start = str(i) + "_"
+					for entry in enumerate(dirs):
+						if entry[1].startswith(string_start):
+							f = entry[1]
+							print("MATCH")
+							break
+					if f != '':
+						f = f.rstrip('\\')
+						break
+			else:
+				f = dirs[0]
+			
+			print("Getting File:", f)
 			#Generate a caption to the image
 			caption_text = ''
 			if not self.override_caption:
@@ -219,15 +228,18 @@ class Poster:
 				caption_text = self.custom_caption + " - dave" + self.below_caption #Use custom caption
 
 			#Post the actual photo to Instagram
-			self.api_i.upload_photo(image_queue_loc + f, caption = caption_text) 
+			self.api_i.upload_photo(image_queue_loc + f, caption = caption_text)
 			try:
 				os.rename(self.image_queue_loc + f + ".REMOVE_ME", self.posted_loc + f)
 			except FileExistsError:
 				os.remove(self.posted_loc + f)
 				os.rename(self.image_queue_loc + f, self.posted_loc + f)
+			except FileNotFoundError:
+				os.rename(self.image_queue_loc + f, self.posted_loc + f)
 
 			print("Photo posted.\n")
 
+		#If fetching memes
 		if self.fetch_random:
 			#Select a subreddit to draw content from
 			self.subreddit = self.choose_subreddit()
@@ -239,11 +251,13 @@ class Poster:
 			print("New image set downloaded.")
 
 		#Wait until next time slot, and then post again
-		time = self.get_time_until_next_post()
-		next_thread = Timer(time, self.create_post)
-		next_thread.start()
-		self.countdown(time, message = "Time before next post : ")
-
+		if start_next: 
+			time = self.get_time_until_next_post()
+			next_thread = Timer(time, self.create_post)
+			next_thread.start()
+			self.countdown(time, message = "Time before next post : ")
+		else:
+			print("System Exiting.")
 		return 0
 
 	#Download, Watermark, and Filter memes. Return corresponding captions.
@@ -258,6 +272,7 @@ class Poster:
 
 		#Filter memes for keyword phrases and duplicated
 		self.filter_memes_keywords_aspectratio()
+		self.filter_memes_duplicates()
 
 		return caption_map
 	#====================================================================
@@ -278,9 +293,33 @@ class Poster:
 				memes[img] = meme.comments[0].body
 
 		return memes
+
+	#Download a given list of memes
+	def download_list(self, meme_list, folder_loc):
+		caption_map = {}
+		#For each meme in the list
+		for i, meme in enumerate(meme_list):
+			#Create unique title for each meme
+			split = re.split("/", meme)
+			image = str(i) + "_" + str(split[-1])
+			title = folder_loc + image
+
+			try:
+				#Download the meme into the meme queue folder
+				urllib.request.urlretrieve(meme, title)
+
+				#Save the caption and meme
+				print("\t\tImage", meme, "saved as", image)
+				caption_map[image] = meme_list[meme]
+			except:
+				print("Failed to download image.")
+
+		print("\tDownloaded images successfully.")
+		return caption_map
+
 	#====================================================================
 
-	#MEME FILTERING METHODS
+	#IMAGE FILTERING METHODS
 	#====================================================================
 	#Filters out memes with a certain keyphrase in the image or outside of a specific range of aspect ratios
 	def filter_memes_keywords_aspectratio(self):
@@ -316,12 +355,13 @@ class Poster:
 		queue_directory = os.listdir(self.image_queue_loc)
 		posted_directory = os.listdir(self.posted_loc)
 
-		for file in queue_directory:
-			f = Image.open(self.image_queue_loc + file)
+		for queue_file in queue_directory:
+			search = re.split("_", queue_file)[1]
 			for posted_file in posted_directory:
-				c = Image.open(self.posted_loc + posted_file)
-				if f == c:
-					os.remove(self.image_queue_loc + file)
+				if search in posted_file:
+					file = self.image_queue_loc + queue_file
+					os.remove(file)
+					print("\t\tRemoved", file, "- Duplicate post detected.")
 		return 0
 	#====================================================================
 
@@ -332,27 +372,6 @@ class Poster:
 		#Return pytesseract read text from meme
 		return pytesseract.image_to_string(Image.open(photo_path), lang = 'eng')
 		
-	#Download a given list of memes
-	def download_list(self, meme_list, folder_loc):
-		caption_map = {}
-		#For each meme in the list
-		for i, meme in enumerate(meme_list):
-			#Create unique title for each meme
-			image = str(i) + ".jpg"
-			title = folder_loc + "\\" + image
-			try:
-				#Download the meme into the meme queue folder
-				urllib.request.urlretrieve(meme, title)
-
-				#Save the caption and meme
-				print("\t\tImage", meme, "saved as", image)
-				caption_map[image] = meme_list[meme]
-			except:
-				print("Failed to download image.")
-
-		print("\tDownloaded images successfully.")
-		return caption_map
-
 	#Return the aspect ratio of a given image file
 	def get_aspect_ratio(self, file):
 		image = Image.open(file)
@@ -390,7 +409,11 @@ class Poster:
 			drawing.text((0,0), text, fill="#ffffff", font=font)
 			c_text.putalpha(100)
 			image.paste(c_text, pos, c_text)
-			image.save(file)
+			try:
+				image.save(file)
+			except:
+				print("Watermarking image failed.")
+				os.remove(file)
 		return 0
 
 	#Gets the time until the next post in seconds
@@ -461,4 +484,3 @@ if __name__ == '__main__':
 	p = Poster(subreddit_dict, keyphrases, posting_times, below_caption, fetch_random = True)
 
 	p.start()
-
