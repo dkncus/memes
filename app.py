@@ -51,7 +51,7 @@ image_queue_loc = r'.\meme_queue\\'
 posted_loc = r'.\posted_photos\\'
 
 #Posting Times (For Threading) DAY : [[H, M, S], [H, M, S], [H, M, S]]
-
+'''
 posting_times = {0 : [[6, 0, 0],  [10, 0, 0], [22, 0, 0]], 	#Monday
 				 1 : [[2, 0, 0],  [4, 0, 0],  [9, 0, 0]], 	#Tuesday
 				 2 : [[7, 0, 0],  [8, 0, 0],  [23, 0, 0]], 	#Wednesday
@@ -59,17 +59,15 @@ posting_times = {0 : [[6, 0, 0],  [10, 0, 0], [22, 0, 0]], 	#Monday
 				 4 : [[5, 0, 0],  [13, 0, 0], [15, 0, 0]], 	#Friday
 				 5 : [[11, 0, 0], [19, 0, 0], [20, 0, 0]], 	#Saturday
 				 6 : [[7, 0, 0],  [8, 0, 0],  [16, 0, 0]]} 	#Sunday
-
-#Spam posting times
 '''
-posting_times = {0 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Monday
-				 1 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Tuesday
-				 2 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Wednesday
-				 3 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Thursday
-				 4 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Friday
-				 5 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], 	#Saturday
-				 6 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]} 	#Sunday
-'''
+#Spam/debug posting times
+posting_times = {0 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]], 	#Monday
+				 1 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]], 	#Tuesday
+				 2 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]], 	#Wednesday
+				 3 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]], 	#Thursday
+				 4 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]], 	#Friday
+				 5 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]], 	#Saturday
+				 6 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]]} 	#Sunday
 
 #Below the caption (Hashtags, whatnot)
 below_caption = "\n.\n.\n.\n Follow @suspectcrab for more!\n#meme #memes #relatable #funny #tiktok #haha #suspectcrab #funnymemes #oof #wholesome #wholesomememe #lol #lmao #humor #dailymemes #memesdaily #cute #funnyvideos"
@@ -81,14 +79,16 @@ class Poster:
 	#LOGIN/SETUP METHODS
 	#====================================================================
 	#Initialization method
-	def __init__(	self, subreddit_dict, keyphrases, posting_times, below_caption,	#Required Positional Arguments
+	def __init__(	self, subreddit_dict, keyphrases, posting_times, below_caption,	fetch_random, #Required Positional Arguments
 					auth = True, 													#Whether Reddit authorization is required
 					access_keys_i_loc = r'.\access_keys\passwords_i.txt', 			#Location of Instagram username and password
 					access_keys_r_loc = r'.\access_keys\keys_r.txt',				#Location of Reddit username and password
 					image_queue_loc = r'.\meme_queue\\', 							#Location of Meme Queue (Image Folder for Queueing)
 					posted_loc = r'.\posted_photos\\', 								#Photos that have previously been posted on the account
-					download_count = 50, 											#Number of Reddit posts to download per cycle into Meme Queue
+					download_count = 30, 											#Number of Reddit posts to download per cycle into Meme Queue
 					subreddit = 'memes', 											#Subreddit to harvest from
+					custom_caption = '',											#Caption that is used if 
+					override_caption = False,										#
 					ar_limit = 1.3):												#Acceptable Aspect Ratio limit
 
 		self.subreddit_dict = subreddit_dict
@@ -96,9 +96,12 @@ class Poster:
 		self.image_queue_loc = image_queue_loc
 		self.posted_loc = posted_loc
 		self.posting_times = posting_times
+		self.override_caption = override_caption
+		self.custom_caption = custom_caption
 		self.below_caption = below_caption
 		self.access_keys_i_loc = access_keys_i_loc
 		self.access_keys_r_loc = access_keys_r_loc
+		self.fetch_random = fetch_random
 		self.subreddit = subreddit
 		self.download_count = download_count
 		self.ar_limit = ar_limit
@@ -189,35 +192,54 @@ class Poster:
 	#THREADING METHODS
 	#====================================================================
 	#Creates a post
-	def create_post(self):
+	def create_post(self, num_posts = 1):
 		print("\n", datetime.now(), ": STARTING NEW POST")
 
 		#Post the photo
-		print("Posting Photo...")
-		#post_photo_to_instagram(api_i,  )
-		dirs = os.listdir(image_queue_loc) 
-		index = random.randint(0, len(dirs) - 1) 	#Select a random index from the directory
-		caption_text = self.caption_map[dirs[index]] + " - dave" + self.below_caption #Generate Relevant Caption
-		
-		try:
-			os.rename(self.image_queue_loc + dirs[index] + ".REMOVE_ME", self.posted_loc + dirs[index])  #FOR DEBUGGING PURPOSES::::::::::::::::::::::::::FIX THIS LATER
-		except FileExistsError:
-			os.remove(self.posted_loc + dirs[index])
-			os.rename(self.image_queue_loc + dirs[index], self.posted_loc + dirs[index])
+		print("Posting Photo(s)...")
 
-		print("Photo posted.\n")
+		#Bundle Posts
+		for i in range(num_posts):
+			dirs = os.listdir(image_queue_loc) #List all files in the directory
 
-		#Select a subreddit to draw content from
-		self.subreddit = self.choose_subreddit()
+			#Get the closest to the top hottest non-eliminated post in the directory
+			f = ''
+			for i in range(len(dirs)):
+				filename = str(i) + ".jpg"
+				if filename in dirs:
+					print("Using", filename)
+					f = filename
+					break
 
-		#Queue a new set of memes from Reddit
-		print("Downloading new set of memes...")
-		self.clear_image_queue()	#Clear the image queue (Delete all memes in queue)
-		self.caption_map = self.download_and_augment() #Download, Watermark, and Filter memes in Image Queue folder
-		print("New meme set downloaded.")
+			#Generate a caption to the image
+			caption_text = ''
+			if not self.override_caption:
+				caption_text = self.caption_map[f] + " - dave" + self.below_caption #Get related caption from caption map
+			else:
+				caption_text = self.custom_caption + " - dave" + self.below_caption #Use custom caption
+
+			#Post the actual photo to Instagram
+			self.api_i.upload_photo(image_queue_loc + f, caption = caption_text) 
+			try:
+				os.rename(self.image_queue_loc + f + ".REMOVE_ME", self.posted_loc + f)
+			except FileExistsError:
+				os.remove(self.posted_loc + f)
+				os.rename(self.image_queue_loc + f, self.posted_loc + f)
+
+			print("Photo posted.\n")
+
+		if self.fetch_random:
+			#Select a subreddit to draw content from
+			self.subreddit = self.choose_subreddit()
+
+			#Queue a new set of memes from Reddit
+			print("Downloading new set of images...")
+			self.clear_image_queue()	#Clear the image queue (Delete all memes in queue)
+			self.caption_map = self.download_and_augment() #Download, Watermark, and Filter memes in Image Queue folder
+			print("New image set downloaded.")
 
 		#Wait until next time slot, and then post again
-		time = get_time_until_next_post()
+		time = self.get_time_until_next_post()
 		next_thread = Timer(time, self.create_post)
 		next_thread.start()
 		self.countdown(time, message = "Time before next post : ")
@@ -436,5 +458,7 @@ class Poster:
 	#====================================================================
 
 if __name__ == '__main__':
-	p = Poster(subreddit_dict, keyphrases, posting_times, below_caption)
+	p = Poster(subreddit_dict, keyphrases, posting_times, below_caption, fetch_random = True)
+
 	p.start()
+
