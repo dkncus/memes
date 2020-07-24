@@ -34,15 +34,16 @@ import re
 
 #CONSTANTS AND SHARED DATA
 #Dictionary of SubReddit pages with likelyhood of selection
-subreddit_dict = {'dankmemes' : 0.20, 'memes' : 0.70, 'comedyheaven' : 0.10}
+subreddit_dict = {'memes' : 1.0}
 
 #Key phrases and words to avoid when harvesting memes
-keyphrases = [	'reddit', 'mods', 'mod', 'gay' 
+keyphrases = [	'reddit', 'mods', 'mod', 
 				'u/', 'u\\', 'r/', 'r\\', 
 				'instagram', 'normie', 'insta', 
 				'awards', 'award', 'karma', 
 				'mematic', 'upvote', 'arrow', 
-				'updoot', 'orange', 'redditor', 'downvote']
+				'updoot', 'orange', 'redditor', 'downvote',
+				'sort', 'cake']
 
 #Pytesseract (Text Extraction) necessary files
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract' #Setup for Pytesseract program files
@@ -52,14 +53,15 @@ image_queue_loc = r'.\meme_queue\\'
 posted_loc = r'.\posted_photos\\'
 
 #Posting Times (For Threading) DAY : [[H, M, S], [H, M, S], [H, M, S]]
-'''
+
 posting_times = {0 : [[6, 0, 0],  [10, 0, 0], [22, 0, 0]], 	#Monday
 				 1 : [[2, 0, 0],  [4, 0, 0],  [9, 0, 0]], 	#Tuesday
-				 2 : [[7, 0, 0],  [8, 0, 0],  [23, 0, 0]], 	#Wednesday
-				 3 : [[9, 0, 0],  [12, 0, 0], [19, 0, 0]], 	#Thursday
-				 4 : [[5, 0, 0],  [13, 0, 0], [15, 0, 0]], 	#Friday
+				 2 : [[11, 0, 0], [13, 0, 0], [23, 0, 0]], 	#Wednesday
+				 3 : [[9, 0, 0],  [13, 0, 0], [19, 0, 0]], 	#Thursday
+				 4 : [[5, 0, 0],  [10, 0, 0], [11, 0, 0]], 	#Friday
 				 5 : [[11, 0, 0], [19, 0, 0], [20, 0, 0]], 	#Saturday
 				 6 : [[7, 0, 0],  [8, 0, 0],  [16, 0, 0]]} 	#Sunday
+
 '''
 #Spam/debug posting times
 posting_times = {0 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]], 	#Monday
@@ -69,9 +71,9 @@ posting_times = {0 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5,
 				 4 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]], 	#Friday
 				 5 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]], 	#Saturday
 				 6 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]]} 	#Sunday
-
+'''
 #Below the caption (Hashtags, whatnot)
-below_caption = "\n.\n.\n.\n Follow @suspectcrab for more!\n#meme #memes #relatable #funny #tiktok #haha #suspectcrab #funnymemes #oof #wholesome #wholesomememe #lol #lmao #humor #dailymemes #memesdaily #cute #funnyvideos"
+below_caption = "\n.\n.\n.\n Follow @suspectcrab for more!\n#meme #memes #funny #dankmemes #memesdaily #funnymemes #lol #follow #dank #humor #like #love #dankmeme #mem #tiktok #lmao #instagram #comedy #ol #anime #fun #dailymemes #memepage #edgymemes #offensivememes #memestagram #funnymeme #memer #fortnite #instagood #bhfyp #haha #suspectcrab #funnymemes #oof #wholesome #wholesomememe #wholesomememes #haha #cute #funnyvideos #relatable"
 
 access_keys_i_loc = r'.\access_keys\passwords_i.txt'
 access_keys_r_loc = r'.\access_keys\keys_r.txt'
@@ -86,7 +88,7 @@ class Poster:
 					access_keys_r_loc = r'.\access_keys\keys_r.txt',				#Location of Reddit username and password
 					image_queue_loc = r'.\meme_queue\\', 							#Location of Meme Queue (Image Folder for Queueing)
 					posted_loc = r'.\posted_photos\\', 								#Photos that have previously been posted on the account
-					download_count = 30, 											#Number of Reddit posts to download per cycle into Meme Queue
+					download_count = 70, 											#Number of Reddit posts to download per cycle into Meme Queue
 					subreddit = 'memes', 											#Subreddit to harvest from
 					custom_caption = '',											#Caption that is used if 
 					override_caption = False,										#
@@ -100,6 +102,7 @@ class Poster:
 		self.override_caption = override_caption
 		self.custom_caption = custom_caption
 		self.below_caption = below_caption
+		self.default_caption = "Tag a friend who would laugh"
 		self.access_keys_i_loc = access_keys_i_loc
 		self.access_keys_r_loc = access_keys_r_loc
 		self.fetch_random = fetch_random
@@ -193,7 +196,7 @@ class Poster:
 	#THREADING METHODS
 	#====================================================================
 	#Creates a post
-	def create_post(self, num_posts = 1, start_next = True):
+	def create_post(self, num_posts = 8, start_next = True):
 		print("\n", datetime.now(), ": STARTING NEW POST")
 
 		#Post the photo
@@ -211,7 +214,6 @@ class Poster:
 					for entry in enumerate(dirs):
 						if entry[1].startswith(string_start):
 							f = entry[1]
-							print("MATCH")
 							break
 					if f != '':
 						f = f.rstrip('\\')
@@ -220,15 +222,24 @@ class Poster:
 				f = dirs[0]
 			
 			print("Getting File:", f)
+
 			#Generate a caption to the image
 			caption_text = ''
+
 			if not self.override_caption:
-				caption_text = self.caption_map[f] + " - dave" + self.below_caption #Get related caption from caption map
+				cap = self.caption_map[f]
+				print(cap)
+				caption_text = cap + self.below_caption #Get related caption from caption map
+				for word in self.keyphrases: #Use a default caption if any of the keywords are mentioned
+					if word in cap:
+						print("BEING REPLACED WITH DEFAULT CAPTION, WORD :", word)
+						caption_text = self.default_caption  + self.below_caption
+						break
 			else:
-				caption_text = self.custom_caption + " - dave" + self.below_caption #Use custom caption
+				caption_text = self.custom_caption + self.below_caption #Use custom caption
 
 			#Post the actual photo to Instagram
-			self.api_i.upload_photo(image_queue_loc + f, caption = caption_text)
+			#self.api_i.upload_photo(image_queue_loc + f, caption = caption_text)
 			try:
 				os.rename(self.image_queue_loc + f + ".REMOVE_ME", self.posted_loc + f)
 			except FileExistsError:
