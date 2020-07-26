@@ -73,7 +73,7 @@ posting_times = {0 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5,
 				 6 : [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [4, 0, 0], [5, 0, 0], [6, 0, 0], [7, 0, 0], [8, 0, 0], [9, 0, 0], [10, 0, 0], [11, 0, 0], [12, 0, 0], [13, 0, 0], [14, 0, 0], [15, 0, 0], [16, 0, 0], [17, 0, 0], [18, 0, 0], [19, 0, 0], [20, 0, 0], [21, 0, 0], [22, 0, 0], [23, 0, 0]]} 	#Sunday
 '''
 #Below the caption (Hashtags, whatnot)
-below_caption = "\n.\n.\n.\n Follow @suspectcrab for more!\n#meme #memes #funny #dankmemes #memesdaily #funnymemes #lol #follow #dank #humor #like #love #dankmeme #mem #tiktok #lmao #instagram #comedy #ol #anime #fun #dailymemes #memepage #edgymemes #offensivememes #memestagram #funnymeme #memer #fortnite #instagood #bhfyp #haha #suspectcrab #funnymemes #oof #wholesome #wholesomememe #wholesomememes #haha #cute #funnyvideos #relatable"
+below_caption = "\n.\n.\n.\n Follow @suspectcrab for more!\n#meme #memes #funny #dankmemes #memesdaily #funnymemes #lol #follow #dank #humor #like #love #dankmeme #tiktok #lmao #instagram #comedy #anime #fun #dailymemes #memepage #edgymemes #offensivememes #memestagram #funnymeme #memer #fortnite #instagood #bhfyp"
 
 access_keys_i_loc = r'.\access_keys\passwords_i.txt'
 access_keys_r_loc = r'.\access_keys\keys_r.txt'
@@ -196,7 +196,7 @@ class Poster:
 	#THREADING METHODS
 	#====================================================================
 	#Creates a post
-	def create_post(self, num_posts = 8, start_next = True):
+	def create_post(self, num_posts = 4, start_next = True):
 		print("\n", datetime.now(), ": STARTING NEW POST")
 
 		#Post the photo
@@ -224,22 +224,26 @@ class Poster:
 			print("Getting File:", f)
 
 			#Generate a caption to the image
-			caption_text = ''
+			caption_text = ""
 
 			if not self.override_caption:
+				#Get related caption on the caption map
 				cap = self.caption_map[f]
 				print(cap)
-				caption_text = cap + self.below_caption #Get related caption from caption map
-				for word in self.keyphrases: #Use a default caption if any of the keywords are mentioned
-					if word in cap:
+				caption_text = cap + self.below_caption 	#Get related caption from caption map
+				for word in self.keyphrases: 				#Use a default caption if any of the keywords are mentioned
+					if word in cap:							
 						print("BEING REPLACED WITH DEFAULT CAPTION, WORD :", word)
 						caption_text = self.default_caption  + self.below_caption
 						break
 			else:
 				caption_text = self.custom_caption + self.below_caption #Use custom caption
 
+			print(caption_text)
 			#Post the actual photo to Instagram
-			#self.api_i.upload_photo(image_queue_loc + f, caption = caption_text)
+			self.api_i.upload_photo(image_queue_loc + f, caption = caption_text)
+
+			#Place the previously posted photo into the POSTED_LOC, so duplicates are not added
 			try:
 				os.rename(self.image_queue_loc + f + ".REMOVE_ME", self.posted_loc + f)
 			except FileExistsError:
